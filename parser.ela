@@ -2,17 +2,8 @@ import lexer::*;
 import map::Map;
 import llvm::LLVMValueRef;
 
-Function :: struct {
-  parameters: List!<InternedString>,
-  block:      Block,
-}
-
-Program :: struct {
-  functions: List!<Function>
-}
-
 BType :: enum {
-  Int,
+  Integer,
   Function,
   Pointer, // Not even supported by us yet.
 }
@@ -23,10 +14,39 @@ Variable :: struct {
   // args, return.
   inferred_function_signature: Option!<(List!<BType>, BType)>
 }
+Function :: struct {
+  parameters: List!<InternedString>,
+  block:      Block,
+}
+
+Scope :: struct {
+  parent: Option!<*mut Scope>,
+  variables: Map!<InternedString, Variable>,
+}
+
+impl Scope {
+  get :: fn(*mut self, name: InternedString) -> Option!<*mut Variable> {
+    if self.variables.contains(name) {
+      return self.variables.get_mut(name);
+    }
+    if self.parent is Option!<*mut Scope>::Some(scope) {
+      return scope.get(name);
+    }
+    return Option!<*mut Variable>::None;
+  }
+  insert :: fn(*mut self, name: InternedString, variable: Option!<Variable>) {
+    self.variables.insert(name, variable.or_else(Variable.{type: BType::Integer}));
+  }
+}
+
+Program :: struct {
+  functions: List!<Function>,
+  scope: Scope,
+}
 
 Block :: struct {
   statements: List!<*mut Statement>,
-  scope: Map!<InternedString, Variable>,
+  scope: Scope,
 }
 
 Statement :: choice {

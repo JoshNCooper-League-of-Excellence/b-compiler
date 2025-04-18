@@ -14,34 +14,40 @@ Emitter :: struct {
   target_data: LLVMTargetDataRef,
   target: LLVMTargetRef,
   machine: LLVMTargetMachineRef,
-  current_scope: *mut Map!<InternedString, LLVMValueRef>,
+  current_scope: *mut Scope,
 }
 
 impl Emitter {
-  visit_program :: fn(*mut self, program: Program) {}
+  visit_program :: fn(*mut self, mut program: Program) {
+    self.current_scope = &mut program.scope;
+    for function in program.functions {
+      self.visit_function(function);
+    }
+    self.current_scope = null;
+  }
   
+  visit_block :: fn(*mut self, block: Block) {  
+    old_scope := self.current_scope;
+    self.current_scope = &mut block.scope;
+    for statement in block.statements {
+      self.visit_statement(statement);
+    }
+    self.current_scope = old_scope;
+  }
+
   visit_function :: fn(*mut self, function: Function) {}
-  visit_block :: fn(*mut self, block: Block) {  }
+  
+  visit_unary :: fn(*mut self, operand: *mut Expression, operator: TType) -> LLVMValueRef { return null; }
+  visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> LLVMValueRef { return null; }
+  visit_call :: fn(*mut self, callee: InternedString, args: List!<*mut Expression>) -> LLVMValueRef { return null; }
 
-  visit_literal :: fn(*mut self, literal: *mut Expression) -> LLVMValueRef { return null; }
-  visit_identifier :: fn(*mut self, identifier: *mut Expression) -> LLVMValueRef { return null; }
-  visit_unary :: fn(*mut self, unary: *mut Expression) -> LLVMValueRef { return null; }
-  visit_binary :: fn(*mut self, binary: *mut Expression) -> LLVMValueRef { return null; }
-  visit_call :: fn(*mut self, call: *mut Expression) -> LLVMValueRef { return null; }
-
-  visit_if :: fn(*mut self, condition: *mut Expression, block: Block) {  
-    
-  }
-
-  visit_extrn :: fn(*mut self, identifier: InternedString) {  
-    
-  }
+  visit_if :: fn(*mut self, condition: *mut Expression, block: Block) {}
+  visit_extrn :: fn(*mut self, identifier: InternedString) {}
 
   visit_auto :: fn(*mut self, identifier: InternedString) {  
-    // #foreign LLVMBuildAlloca :: fn(param0: LLVMBuilderRef, Ty: LLVMTypeRef, Name: *const u8) -> LLVMValueRef;
-    scope := self.current_scope;
     type: LLVMTypeRef = LLVMInt32Type();
-    scope.insert(identifier, LLVMBuildAlloca(self.builder, type, identifier.value().data));
+    variable := self.current_scope.get(identifier).unwrap();
+    variable.llvm_value = LLVMBuildAlloca(self.builder, type, identifier.value().data);
   }
 
   visit_statement :: fn(*mut self, statement: *mut Statement) {
@@ -57,10 +63,10 @@ impl Emitter {
   visit_expression :: fn(*mut self, expression: *mut Expression) -> LLVMValueRef {
     switch is expression {
       Expression::Literal(integer) => LLVMConstInt(LLVMInt32TypeInContext(self.ctx), integer, 0);
-      Expression::Identifier(identifier) => self.current_scope.get(identifier).unwrap(),
-      Expression::Unary => self.visit_unary(expression),
-      Expression::Binary => self.visit_binary(expression),
-      Expression::Call => self.visit_call(expression),
+      Expression::Identifier(identifier) => self.current_scope.get(identifier).unwrap().llvm_value,
+      Expression::Unary(operand, operator) => self.visit_unary(operand, operator),
+      Expression::Binary(left, right, operator) => self.visit_binary(left, right, operator),
+      Expression::Call(callee, args) => self.visit_call(callee, args),
       else: { 
         panic("Unhandled expression type");
       }
