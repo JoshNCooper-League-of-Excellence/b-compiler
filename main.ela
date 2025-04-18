@@ -1,5 +1,6 @@
 import lexer::*;
 import parser::*;
+import emitter;
 
 main :: fn() {
   mut lexer := elexify::Lexer::new(

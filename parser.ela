@@ -1,4 +1,6 @@
 import lexer::*;
+import map::Map;
+import llvm::LLVMValueRef;
 
 Function :: struct {
   parameters: List!<InternedString>,
@@ -9,8 +11,22 @@ Program :: struct {
   functions: List!<Function>
 }
 
+BType :: enum {
+  Int,
+  Function,
+  Pointer, // Not even supported by us yet.
+}
+
+Variable :: struct {
+  type: BType,
+  llvm_value: LLVMValueRef,
+  // args, return.
+  inferred_function_signature: Option!<(List!<BType>, BType)>
+}
+
 Block :: struct {
   statements: List!<*mut Statement>,
+  scope: Map!<InternedString, Variable>,
 }
 
 Statement :: choice {
@@ -20,26 +36,16 @@ Statement :: choice {
   // expression statement. call, assignment.
   Expression(*mut Expression), 
   // control flow.
-  If{
-    condition: *mut Expression, 
-    block: Block
-  },
+  If(*mut Expression, Block)
 }
 
+// char literals are represented as integers.
 Expression :: choice {
-  // char literals are represented as integers.
   Literal(s64),
   Identifier(InternedString),
-  Unary{
-    operand: *mut Expression,
-    operator: TType,
-  },
-  Binary{
-    left: *mut Expression,
-    right: *mut Expression,
-    operator: TType,
-  },
-  Call(*mut Expression, List!<*mut Expression>),
+  Unary(*mut Expression, TType),
+  Binary(*mut Expression, *mut Expression, TType),
+  Call(InternedString, List!<*mut Expression>),
 }
 
 Precedence :: enum {
@@ -99,15 +105,21 @@ parse_postfix :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   left := parse_primary(lexer);
   switch lexer.peek().type {
     TType::OpenParen: {
-      callee := left;
-      lexer.eat();
-      mut arguments: List!<*mut Expression>;
-      while !lexer.peek().is_type(TType::CloseParen) {
-        arguments.push(parse_expression(lexer));
-        if !lexer.peek().is_type(TType::CloseParen) then lexer.expect(TType::Comma);
+      if left is Expression::Identifier(identifier) {
+        callee := identifier;
+        lexer.eat();
+        mut arguments: List!<*mut Expression>;
+        while !lexer.peek().is_type(TType::CloseParen) {
+          arguments.push(parse_expression(lexer));
+          if !lexer.peek().is_type(TType::CloseParen) 
+            then lexer.expect(TType::Comma);
+        }
+        lexer.expect(TType::CloseParen);
+        return new(Expression::Call(callee, arguments));
+      } else {
+        lex_error("can only call an identifier right now", lexer.peek().location);
+        return null;
       }
-      lexer.expect(TType::CloseParen);
-      return new(Expression::Call(callee, arguments));
     }
     // todo: add subscript.
   }
@@ -120,7 +132,7 @@ parse_unary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   switch token.type {
     TType::Sub: {
       lexer.eat();
-      return new(Expression::Unary.{operand: left, operator: token.type});
+      return new(Expression::Unary(left, token.type));
     }
   }
   return left;
@@ -139,12 +151,7 @@ parse_binary :: fn(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *m
 
     lexer.eat();
     right := parse_binary(lexer, precedence + 1);
-
-    left = new(Expression::Binary.{
-      left: left,
-      right: right,
-      operator: token.type,
-    });
+    left = new(Expression::Binary(left, right, token.type));
   }
 
   return left;
@@ -180,9 +187,7 @@ parse_statement :: fn(lexer: *mut elexify::Lexer) -> *mut Statement {
       condition := parse_expression(lexer);
       lexer.expect(TType::CloseParen);
       block := parse_block(lexer);
-      return new(Statement::If.{
-        condition: condition, block: block
-      });
+      return new(Statement::If(condition, block));
     }
   }
   lex_error("failed to parse statement", token.location);

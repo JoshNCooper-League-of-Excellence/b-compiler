@@ -1,0 +1,139 @@
+import llvm::*;
+import parser::*;
+
+CompilationMode :: enum {
+  Default = 0,
+  Debug   = 0, 
+  Release = 1
+}
+
+Emitter :: struct {
+  mod: LLVMModuleRef,
+  ctx: LLVMContextRef,
+  builder: LLVMBuilderRef,
+  target_data: LLVMTargetDataRef,
+  target: LLVMTargetRef,
+  machine: LLVMTargetMachineRef,
+  current_scope: *mut Map!<InternedString, LLVMValueRef>,
+}
+
+impl Emitter {
+  visit_program :: fn(*mut self, program: Program) {}
+  
+  visit_function :: fn(*mut self, function: Function) {}
+  visit_block :: fn(*mut self, block: Block) {  }
+
+  visit_literal :: fn(*mut self, literal: *mut Expression) -> LLVMValueRef { return null; }
+  visit_identifier :: fn(*mut self, identifier: *mut Expression) -> LLVMValueRef { return null; }
+  visit_unary :: fn(*mut self, unary: *mut Expression) -> LLVMValueRef { return null; }
+  visit_binary :: fn(*mut self, binary: *mut Expression) -> LLVMValueRef { return null; }
+  visit_call :: fn(*mut self, call: *mut Expression) -> LLVMValueRef { return null; }
+
+  visit_if :: fn(*mut self, condition: *mut Expression, block: Block) {  
+    
+  }
+
+  visit_extrn :: fn(*mut self, identifier: InternedString) {  
+    
+  }
+
+  visit_auto :: fn(*mut self, identifier: InternedString) {  
+    // #foreign LLVMBuildAlloca :: fn(param0: LLVMBuilderRef, Ty: LLVMTypeRef, Name: *const u8) -> LLVMValueRef;
+    scope := self.current_scope;
+    type: LLVMTypeRef = LLVMInt32Type();
+    scope.insert(identifier, LLVMBuildAlloca(self.builder, type, identifier.value().data));
+  }
+
+  visit_statement :: fn(*mut self, statement: *mut Statement) {
+    switch is statement {
+      Statement::Extrn(identifier) => self.visit_extrn(identifier),
+      Statement::Auto(identifier) => self.visit_auto(identifier),
+      Statement::Expression(expression) => self.visit_expression(expression),
+      Statement::If(condition, block) => self.visit_if(condition, block),
+      else => panic("Unhandled statement type"),
+    }
+  }
+
+  visit_expression :: fn(*mut self, expression: *mut Expression) -> LLVMValueRef {
+    switch is expression {
+      Expression::Literal(integer) => LLVMConstInt(LLVMInt32TypeInContext(self.ctx), integer, 0);
+      Expression::Identifier(identifier) => self.current_scope.get(identifier).unwrap(),
+      Expression::Unary => self.visit_unary(expression),
+      Expression::Binary => self.visit_binary(expression),
+      Expression::Call => self.visit_call(expression),
+      else: { 
+        panic("Unhandled expression type");
+      }
+    }
+    return null;
+  }
+}
+
+
+impl Emitter {
+  new :: fn() -> #self {
+    ctx := LLVMContextCreate();
+    builder := LLVMCreateBuilderInContext(ctx);
+    mod := LLVMModuleCreateWithNameInContext("b-compiler-module"c, ctx);
+
+    LLVMInitializeNativeTarget();
+
+    target_triple := LLVMGetDefaultTargetTriple();
+    features := LLVMGetHostCPUFeatures();
+    cpu := LLVMGetHostCPUName();
+
+    LLVMSetTarget(mod, target_triple);
+
+    target: LLVMTargetRef;
+    mut message: c_str;
+    if (LLVMGetTargetFromTriple(target_triple, &mut target, &mut message)) {
+      printf("Error getting target from triple: %s\n"c, message);
+      LLVMDisposeMessage(message as *mut u8);
+      exit(1);
+    }
+
+    machine: LLVMTargetMachineRef = LLVMCreateTargetMachine(
+      target, 
+      target_triple, 
+      cpu, 
+      features, 
+      LLVMCodeGenOptLevel::Default, 
+      LLVMRelocMode::PIC, 
+      LLVMCodeModel::Default
+    );
+
+    target_data: LLVMTargetDataRef = LLVMCreateTargetDataLayout(machine);
+
+    return .{
+      target_data: target_data,
+      target: target,
+      machine: machine,
+      mod: mod,
+      ctx: ctx,
+      builder: builder,
+    };
+  }
+
+
+
+  compile :: fn(*mut self, program: *const Program, compilation_mode: CompilationMode) {
+    if (compilation_mode == CompilationMode::Release) {
+      passes := "default<O3>"c;
+      options: LLVMPassBuilderOptionsRef = LLVMCreatePassBuilderOptions();
+      LLVMPassBuilderOptionsSetVerifyEach(options, 1);
+      mut pass_error: LLVMErrorRef;
+      if (pass_error = LLVMRunPasses(self.mod, passes, self.machine, options)) {
+        message := LLVMGetErrorMessage(pass_error);
+        printf("Error running passes :: %s\n"c, message);
+        exit(1);
+      }
+      LLVMDisposePassBuilderOptions(options);
+    }
+
+    error: *mut u8;
+    if (LLVMPrintModuleToFile(self.mod, "output.ll"c, &mut error)) {
+      printf("%s\n"c, error);
+      exit(1);
+    }
+  }
+}
