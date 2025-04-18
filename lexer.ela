@@ -1,0 +1,66 @@
+import fmt;
+import fs;
+import map::Map;
+import elexify::*;
+import interned;
+
+
+TType :: enum {
+  Comma, 
+  Semicolon,
+
+  Add,
+  Sub,
+  Div,
+  Mul,
+  Modulo,
+
+  Assign,
+
+  OpenParen
+  CloseParen
+
+  OpenCurly,
+  CloseCurly,
+
+  Extrn,
+  Auto,
+
+  If,
+
+  Eof         = elexify::TOKEN_EOF,
+  Identifier  = elexify::TOKEN_IDENTIFIER,
+  Integer     = elexify::TOKEN_INTEGER,
+  Float       = elexify::TOKEN_FLOAT,
+  String      = elexify::TOKEN_STRING,
+  Char        = elexify::TOKEN_CHAR,
+}
+
+operators :: fn() -> Map!<str, u32> {
+  return Map!<str, u32>::init(.[
+    (",", TType::Comma),
+    (";", TType::Semicolon),
+
+    ("+", TType::Add),
+    ("-", TType::Sub),
+    ("/", TType::Div),
+    ("*", TType::Mul),
+    ("%", TType::Modulo),
+
+    ("=", TType::Assign),
+
+    ("(", TType::OpenParen),
+    (")", TType::CloseParen),
+
+    ("{", TType::OpenCurly),
+    ("}", TType::CloseCurly),
+  ]);
+}
+
+keywords :: fn() -> Map!<str, u32> {
+  return Map!<str, u32>::init(.[
+    ("extrn", TType::Extrn),
+    ("auto", TType::Auto),
+    ("if", TType::If),
+  ]);
+}

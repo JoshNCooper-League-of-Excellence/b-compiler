@@ -1,0 +1,228 @@
+import lexer::*;
+
+Function :: struct {
+  parameters: List!<InternedString>,
+  block:      Block,
+}
+
+Program :: struct {
+  functions: List!<Function>
+}
+
+Block :: struct {
+  statements: List!<*mut Statement>,
+}
+
+Statement :: choice {
+  // Declarations.
+  Extrn(InternedString),
+  Auto(InternedString),
+  // expression statement. call, assignment.
+  Expression(*mut Expression), 
+  // control flow.
+  If{
+    condition: *mut Expression, 
+    block: Block
+  },
+}
+
+Expression :: choice {
+  // char literals are represented as integers.
+  Literal(s64),
+  Identifier(InternedString),
+  Unary{
+    operand: *mut Expression,
+    operator: TType,
+  },
+  Binary{
+    left: *mut Expression,
+    right: *mut Expression,
+    operator: TType,
+  },
+  Call(*mut Expression, List!<*mut Expression>),
+}
+
+Precedence :: enum {
+  Assignment,      // For '='
+  Additive,        // For '+' and '-'
+  Multiplicative,  // For '*', '/', and '%'
+}
+
+impl u32 {
+  to_precedence :: fn(self) -> Precedence {
+    switch self {
+      TType::Add => Precedence::Additive,
+      TType::Sub => Precedence::Additive,
+      TType::Mul => Precedence::Multiplicative,
+      TType::Div => Precedence::Multiplicative,
+      TType::Modulo => Precedence::Multiplicative,
+      TType::Assign => Precedence::Assignment,
+    }
+    // nopers.
+    return u32::max_value();
+  }
+}
+
+parse_block :: fn(lexer: *mut elexify::Lexer) -> Block;
+parse_expression :: fn(lexer: *mut elexify::Lexer) -> *mut Expression;
+
+parse_primary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
+  token := lexer.eat();
+  switch token.type {
+    TType::OpenParen: {
+      expr := parse_expression(lexer);
+      lexer.expect(TType::CloseParen);
+      return expr;
+    }
+    TType::Integer: {
+      mut string := *token.value.unwrap().data;
+      integer := atoi(string.data);
+      string.deinit();
+      return new(Expression::Literal(integer));
+    }
+    TType::Identifier: {
+      string := token.value.unwrap();
+      return new(Expression::Identifier(string));
+    }
+    TType::Char: {
+      mut string := *token.value.unwrap().data;
+      integer := atoi(string.data);
+      string.deinit();
+      return new(Expression::Literal(integer));
+    }
+  }
+  lex_error("failed to parse primary expression", token.location);
+  return null;
+}
+
+parse_postfix :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
+  left := parse_primary(lexer);
+  switch lexer.peek().type {
+    TType::OpenParen: {
+      callee := left;
+      lexer.eat();
+      mut arguments: List!<*mut Expression>;
+      while !lexer.peek().is_type(TType::CloseParen) {
+        arguments.push(parse_expression(lexer));
+        if !lexer.peek().is_type(TType::CloseParen) then lexer.expect(TType::Comma);
+      }
+      lexer.expect(TType::CloseParen);
+      return new(Expression::Call(callee, arguments));
+    }
+    // todo: add subscript.
+  }
+  return left;
+}
+
+parse_unary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression { 
+  left := parse_postfix(lexer);
+  token := lexer.peek();
+  switch token.type {
+    TType::Sub: {
+      lexer.eat();
+      return new(Expression::Unary.{operand: left, operator: token.type});
+    }
+  }
+  return left;
+}
+
+parse_binary :: fn(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *mut Expression {
+  mut left := parse_unary(lexer);
+
+  while true {
+    token := lexer.peek();
+    precedence := token.type.to_precedence();
+
+    if precedence < min_precedence {
+      break;
+    }
+
+    lexer.eat();
+    right := parse_binary(lexer, precedence + 1);
+
+    left = new(Expression::Binary.{
+      left: left,
+      right: right,
+      operator: token.type,
+    });
+  }
+
+  return left;
+}
+
+parse_expression :: fn(lexer: *mut elexify::Lexer) -> *mut Expression { 
+  return parse_binary(lexer, 0);
+}
+
+parse_statement :: fn(lexer: *mut elexify::Lexer) -> *mut Statement {
+  token := lexer.peek();
+  switch token.type {
+    TType::Identifier: {
+      expr := new(Statement::Expression(parse_expression(lexer)));
+      lexer.expect(TType::Semicolon);
+      return expr;
+    }
+    TType::Extrn: {
+      lexer.eat();
+      identifier := lexer.expect(TType::Identifier).value.unwrap();
+      lexer.expect(TType::Semicolon);
+      return new(Statement::Extrn(identifier));
+    }
+    TType::Auto: {
+      lexer.eat();
+      identifier := lexer.expect(TType::Identifier).value.unwrap();
+      lexer.expect(TType::Semicolon);
+      return new(Statement::Auto(identifier));
+    }
+    TType::If: {
+      lexer.eat();
+      lexer.expect(TType::OpenParen);
+      condition := parse_expression(lexer);
+      lexer.expect(TType::CloseParen);
+      block := parse_block(lexer);
+      return new(Statement::If.{
+        condition: condition, block: block
+      });
+    }
+  }
+  lex_error("failed to parse statement", token.location);
+  return null;
+}
+
+parse_block :: fn(lexer: *mut elexify::Lexer) -> Block {
+  mut block: Block;
+  if !lexer.peek().is_type(TType::OpenCurly) {
+    block.statements.push(parse_statement(lexer));
+    return block;
+  }
+  lexer.expect(TType::OpenCurly);
+  while !lexer.peek().is_type(TType::CloseCurly) {
+    block.statements.push(parse_statement(lexer));
+  }
+  lexer.expect(TType::CloseCurly);
+  return block;
+}
+
+parse_function :: fn(lexer: *mut elexify::Lexer) -> Function {
+  name := lexer.expect(TType::Identifier);
+  lexer.expect(TType::OpenParen);
+  mut function: Function;
+  while lexer.peek().is_type(TType::Identifier) {
+    function.parameters.push(lexer.eat().value.unwrap());
+    if !lexer.peek().is_type(TType::CloseParen) {
+      lexer.expect(TType::Comma);
+    }
+  }
+  lexer.expect(TType::CloseParen);
+  function.block = parse_block(lexer);
+  return function;
+}
+
+parse_program :: fn(lexer: *mut elexify::Lexer) -> Program {
+  mut program: Program;
+  while !lexer.peek().is_eof() {
+    program.functions.push(parse_function(lexer));
+  }
+  return program;
+}
+
