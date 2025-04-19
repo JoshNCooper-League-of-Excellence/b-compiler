@@ -14,9 +14,8 @@ impl Analyzer {
   }
   
   visit_function :: fn(*mut self, function: Function) {
-    mut block_scope := function.block.scope;
     for parameter in function.parameters {
-      block_scope.insert(parameter, None());
+      function.block.scope.insert(parameter, None());
     }
     self.visit_block(function.block);
   }
@@ -34,7 +33,7 @@ impl Analyzer {
   visit_literal :: fn(*mut self, literal: s64) -> BType => BType::Integer;  
 
   visit_identifier :: fn(*mut self, identifier: InternedString) -> BType {
-    variable : Option!<*mut Variable> = self.current_scope.get(identifier);
+    variable: Option!<*mut Variable> = self.current_scope.get(identifier);
     if (variable.is_none()) {
       fmt::printlnf("use of undeclared identifier %", (identifier,));
       exit(1);
@@ -85,8 +84,13 @@ impl Analyzer {
   } 
 
   visit_if :: fn(*mut self, condition: *mut Expression, block: Block) {}
-  visit_extrn :: fn(*mut self, identifier: InternedString) {}
-  visit_auto :: fn(*mut self, identifier: InternedString) {}
+
+  visit_extrn :: fn(*mut self, identifier: InternedString) {
+    self.current_scope.insert(identifier, None());
+  }
+  visit_auto :: fn(*mut self, identifier: InternedString) {
+    self.current_scope.insert(identifier, None());
+  }
 
   visit_statement :: fn(*mut self, statement: *mut Statement) {
     switch is statement {

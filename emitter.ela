@@ -75,14 +75,16 @@ impl Emitter {
   }
 }
 
-
 impl Emitter {
   new :: fn() -> #self {
     ctx := LLVMContextCreate();
     builder := LLVMCreateBuilderInContext(ctx);
     mod := LLVMModuleCreateWithNameInContext("b-compiler-module"c, ctx);
 
-    LLVMInitializeNativeTarget();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmPrinter();
 
     target_triple := LLVMGetDefaultTargetTriple();
     features := LLVMGetHostCPUFeatures();
@@ -122,7 +124,7 @@ impl Emitter {
 
 
 
-  compile :: fn(*mut self, program: *const Program, compilation_mode: CompilationMode) {
+  compile :: fn(*mut self, compilation_mode: CompilationMode) {
     if (compilation_mode == CompilationMode::Release) {
       passes := "default<O3>"c;
       options: LLVMPassBuilderOptionsRef = LLVMCreatePassBuilderOptions();

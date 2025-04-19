@@ -21,4 +21,6 @@ main :: fn() {
 
   mut emitter := Emitter::new();
   emitter.visit_program(program);
+
+  emitter.compile(CompilationMode::Release);
 }
