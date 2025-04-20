@@ -1,6 +1,7 @@
 import lexer::*;
 import parser::*;
 import emitter::*;
+import fs::*;
 
 main :: fn() {
   mut lexer := elexify::Lexer::new(
@@ -16,5 +17,9 @@ main :: fn() {
 
   mut emitter := Emitter.{};
   emitter.visit_program(program);
+
+  emitter.externs.appendf("%\n", (emitter.code.get_string(),), fmt::FormatOptions::default());
+
+  fs::File::write_all("output.asm", emitter.externs.get_string());
 
 }
