@@ -8,6 +8,8 @@ _start:
   mov rdi, 500            ; Set n = 500
   mov rsi, 10             ; Set b = 10
   call printn             ; Call printn(500, 10)
+  mov rdi, 0x0A
+  call putchar
   mov rdi, 0
   call exit
   ret
