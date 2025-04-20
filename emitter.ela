@@ -15,12 +15,26 @@ import inst::*;
 Emitter :: struct {
   current_scope: *mut Scope,
   registers: List!<(bool, Register)>,
-  bss_section: fmt::StringBuilder,
+  externs: fmt::StringBuilder,
   code: fmt::StringBuilder,
   sp: u64,
 }
 
 impl Emitter {
+  new :: fn() -> Emitter {
+    return .{
+      registers: List!<(bool, Register)>::init(.[
+        (false, Register::RBX),
+        (false, Register::R10),
+        (false, Register::R11),
+        (false, Register::R12),
+        (false, Register::R13),
+        (false, Register::R14),
+        (false, Register::R15),
+      ]),
+
+    }
+  }
   register_take :: fn(*mut self) -> Option!<Register> {
     for *taken, register in self.registers.iter_mut() {
       if *taken 
@@ -47,10 +61,10 @@ impl Emitter {
     self.current_scope = null;
   }
 
-  visit_block :: fn(*mut self, block: Block) {
+  visit_block :: fn(*mut self, mut block: Block) {
     old_scope := self.current_scope;
     self.current_scope = block.scope;
-    block.scope.parent = old_scope;
+    block.scope.parent = Some(old_scope);
     for statement in block.statements {
       self.visit_statement(statement);
     }
@@ -81,16 +95,31 @@ impl Emitter {
     return .{};
   }
 
-  visit_if :: fn(*mut self, condition: *mut Expression, block: Block) {
+  visit_if :: fn(*mut self, condition: *mut Expression, mut block: Block) {
+    #static mut if_id: u64 = 0;
+    if_label := fmt::qformat(".if%", (if_id,));
+    cont_label := fmt::qformat(".cont%", (if_id,));
+    if_id++;
 
+    condition_result := self.visit_expression(condition);
+
+    inst::emit_binary("icmp", condition_result, Value::Literal(0), &mut self.code, &const "if (cond)");
+    inst::emit_unary("je", Value::Label(InternedString::new(cont_label)), &mut self.code, &const "if (!cond)");
+
+    self.code.append(if_label);
+    self.code.append(":\n");
+    self.visit_block(block);
+    self.code.append(cont_label);
+    self.code.append(":\n");
   }
 
   visit_extrn :: fn(*mut self, identifier: InternedString) {
-
+    // TODO: this wont work for global variables.
+    self.externs.appendf("extern %\n", (identifier.value(),), fmt::FormatOptions::default());
   }
 
   visit_auto :: fn(*mut self, identifier: InternedString) {
-    
+    inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const "alloca");
   }
 
   visit_statement :: fn(*mut self, statement: *mut Statement) {
@@ -105,6 +134,7 @@ impl Emitter {
 
   visit_expression :: fn(*mut self, expression: *mut Expression) -> Value {
     switch is expression {
+      // TODO: put literals into a register right away.
       Expression::Literal(integer) => Value::Literal(integer),
       Expression::Identifier(identifier) => *self.current_scope.get(identifier).unwrap(),
       Expression::Unary(operand, operator) => self.visit_unary(operand, operator),
