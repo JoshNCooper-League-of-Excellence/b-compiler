@@ -60,10 +60,10 @@ Value :: choice {
 }
 
 impl Value {
-  to_string :: fn(self, bp: u64) -> String {
+  to_string :: fn(self) -> String {
     switch is self {
       Value::Register(reg) => reg.to_string(),
-      Value::Stack(addr) => fmt::to_string(bp + addr),
+      Value::Stack(addr) => fmt::qformat("[% + rbp]", (addr,)),
       Value::Param(idx) => argument_registers.data[idx].to_string(),
       Value::Literal(value) => fmt::to_string(value),
       Value::Extrn(name) => fmt::qformat("[%]", (name.value(),)),

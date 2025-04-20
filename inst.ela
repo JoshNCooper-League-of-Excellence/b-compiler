@@ -1,23 +1,23 @@
 import scope::*;
 import fmt::StringBuilder;
 
-emit_unary :: fn(bp: u64, inst: str, operand: Value, code: *mut fmt::StringBuilder, comment: *const str) {
+emit_unary :: fn(inst: str, operand: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
-    code.appendf("% % ; %\n", (inst, operand.to_string(bp), *comment), FormatOptions::default());
+    code.appendf("% % ; %\n", (inst, operand.to_string(), *comment), FormatOptions::default());
   } else {
-    code.appendf("% %\n", (inst, operand.to_string(bp)), FormatOptions::default());
+    code.appendf("% %\n", (inst, operand.to_string()), FormatOptions::default());
   }
 }
 
-emit_binary :: fn(bp: u64, inst: str, dest: Value, src: Value, code: *mut fmt::StringBuilder, comment: *const str) {
+emit_binary :: fn(inst: str, dest: Value, src: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
-    code.appendf("% %, % ; %\n", (inst, dest.to_string(bp), src.to_string(bp), *comment), FormatOptions::default());
+    code.appendf("% %, % ; %\n", (inst, dest.to_string(), src.to_string(), *comment), FormatOptions::default());
   } else {
-    code.appendf("% %, %\n", (inst, dest.to_string(bp), src.to_string(bp)), FormatOptions::default());
+    code.appendf("% %, %\n", (inst, dest.to_string(), src.to_string()), FormatOptions::default());
   }
 }
 
-emit_nullary :: fn(bp: u64, inst: str, code: *mut fmt::StringBuilder, comment: *const str) {
+emit_nullary :: fn(inst: str, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
     code.appendf("% ; %\n", (inst, *comment), FormatOptions::default());
   } else {

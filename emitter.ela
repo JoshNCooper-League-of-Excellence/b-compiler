@@ -65,7 +65,7 @@ impl Emitter {
 
   visit_unary :: fn(*mut self, operand: *mut Expression, operator: TType) -> Value {
     operand_result := self.visit_expression(operand);
-    inst::emit_unary(self.bp, "neg", operand_result, &mut self.code, &const "negate");
+    inst::emit_unary("neg", operand_result, &mut self.code, &const "negate");
     return operand_result;
   }
 
