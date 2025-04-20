@@ -100,8 +100,20 @@ impl Emitter {
   }
 
   visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
-    mut left_value := self.visit_expression(left);
     right_value := self.visit_expression(right);
+    if operator == TType::Assign {
+      if left is Expression::Identifier(identifier) {
+        alloca := *self.current_scope.get(identifier).unwrap();
+        mut comment := fmt::qformat("storing %", (identifier,));
+        as_str := comment.as_str();
+        inst::emit_binary("mov", alloca, right_value, &mut self.code, &const as_str);
+        comment.deinit();
+        return Value::Literal(0);
+      } else {
+        panic("cannot assign to non symbol");
+      }
+    }
+    mut left_value := self.visit_expression(left);
     if operator == TType::Div || operator == TType::Modulo {
       inst::emit_binary("mov", Value::Register(Register::RAX), left_value, &mut self.code, null);
       inst::emit_nullary("cqo", &mut self.code, null)
