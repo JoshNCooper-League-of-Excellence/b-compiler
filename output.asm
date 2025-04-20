@@ -7,7 +7,7 @@ mov rbx, rsi ; loading Interned { "b" }
 mov r10, rdi ; loading Interned { "n" }
 mov rax, r10
 cqo
-div rbx
+idiv rbx
 mov [rbp - 8], rax ; storing Interned { "a" }
 cmp 0, 0 ; if (cond)
 je .cont0 ; if (!cond)
@@ -27,7 +27,7 @@ mov r10, rsi ; loading Interned { "b" }
 mov r11, rdi ; loading Interned { "n" }
 mov rax, r11
 cqo
- r10
+idiv r10
 add rdx, rbx
 push rdi
 mov rdi, rdx ; load arg 0 -> 

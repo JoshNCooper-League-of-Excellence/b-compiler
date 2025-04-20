@@ -118,7 +118,7 @@ impl Emitter {
       inst::emit_binary("mov", Value::Register(Register::RAX), left_value, &mut self.code, null);
       inst::emit_nullary("cqo", &mut self.code, null)
       self.free(left_value);
-      inst::emit_unary(operator.to_inst(), right_value, &mut self.code, null);
+      inst::emit_unary("idiv", right_value, &mut self.code, null);
       if operator == TType::Div {
         left_value = Value::Register(Register::RAX);
       } else {
