@@ -22,6 +22,10 @@ Register :: enum {
 impl Register {
   to_string :: fn(self) -> String {
     switch self {
+      Register::RDI => String::from("rdi"),
+      Register::RSI => String::from("rsi"),
+      Register::RDX => String::from("rdx"),
+      Register::RCX => String::from("rcx"),
       Register::RBX => String::from("rbx"),
       Register::R8 => String::from("r8"),
       Register::R9 => String::from("r9"),
@@ -48,8 +52,8 @@ impl Register {
 
 Value :: choice {
   Register(Register),
-  Stack(u64),
-  Param(s64),
+  Stack(s64),
+  Param(u16),
   Literal(s64),
   Function,
   Extrn(Interned!<String>),

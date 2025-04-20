@@ -58,7 +58,7 @@ impl Emitter {
 
   visit_function :: fn(*mut self, function: Function) {
     for i, param in function.parameters.enumerate() {
-      function.block.scope.insert(param, Value::Param(i as s64));
+      function.block.scope.insert(param, Value::Param(i as u16));
     }
     self.visit_block(function.block);
   }
@@ -66,7 +66,6 @@ impl Emitter {
   visit_unary :: fn(*mut self, operand: *mut Expression, operator: TType) -> Value {
     operand_result := self.visit_expression(operand);
     inst::emit_unary(self.bp, "neg", operand_result, &mut self.code, &const "negate");
-    inst::emit_binary(self.bp, "mov", operand_result, Value::Register(Register::RAX), &mut self.code, &const "mov neg res");
     return operand_result;
   }
 
