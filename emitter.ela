@@ -151,8 +151,11 @@ impl Emitter {
       cmt_str := cmt_string.as_str();
       inst::emit_binary("mov", register, value, &mut self.code, &const cmt_str);
       cmt_string.deinit();
-    } 
+    }
+    alignment := 16 - (self.sp + registers_to_restore.length * 8) % 16;
+    inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "aligning stack");
     inst::emit_unary("call", Value::Label(callee), &mut self.code, null);
+    inst::emit_binary("add", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "restoring stack");
     for register in registers_to_restore {
       inst::emit_unary("pop", register, &mut self.code, &const "restore");
     }
