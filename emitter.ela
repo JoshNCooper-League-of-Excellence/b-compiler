@@ -52,7 +52,7 @@ impl Emitter {
   }
   free :: fn(*mut self, value: Value) {
     // TODO: free stack as well
-    if left_value is Value::Register(reg) {
+    if value is Value::Register(reg) {
       // we dont free rax or rdx because we reserve it for div results
       if reg == Register::RAX || reg == Register::RDX {
         return;
@@ -95,12 +95,12 @@ impl Emitter {
   }
 
   visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
-    left_value := self.visit_expression(left);
+    mut left_value := self.visit_expression(left);
     right_value := self.visit_expression(right);
     if operator == TType::Div || operator == TType::Modulo {
       inst::emit_binary("mov", Value::Register(Register::RAX), left_value, &mut self.code, null);
       inst::emit_nullary("cqo", &mut self.code, null)
-      free(left_value);
+      self.free(left_value);
       inst::emit_unary(operator.to_inst(), right_value, &mut self.code, null);
       if operator == TType::Div {
         left_value = Value::Register(Register::RAX);
@@ -110,7 +110,7 @@ impl Emitter {
     } else {
       inst::emit_binary(operator.to_inst(), left_value, right_value, &mut self.code, null);
     }
-    free(right_value);
+    self.free(right_value);
     return left_value;
   }
 
@@ -139,10 +139,15 @@ impl Emitter {
   visit_extrn :: fn(*mut self, identifier: InternedString) {
     // TODO: this wont work for global variables.
     self.externs.appendf("extern %\n", (identifier.value(),), fmt::FormatOptions::default());
+    value := Value::Label(identifier);
+    self.current_scope.insert(identifier, value);
   }
 
   visit_auto :: fn(*mut self, identifier: InternedString) {
     inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const "alloca");
+    value := Value::Stack(self.sp);
+    self.sp += 8;
+    self.current_scope.insert(identifier, value);
   }
 
   visit_statement :: fn(*mut self, statement: *mut Statement) {

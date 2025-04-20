@@ -59,19 +59,16 @@ Value :: choice {
   Stack(s64),
   Param(u16),
   Literal(s64),
-  Function,
-  Extrn(Interned!<String>),
-  Label(Interned!<String>)
+  Label(Interned!<String>),
 }
 
 impl Value {
   to_string :: fn(self) -> String {
     switch is self {
       Value::Register(reg) => reg.to_string(),
-      Value::Stack(addr) => fmt::qformat("[% + rbp]", (addr,)),
+      Value::Stack(addr) => fmt::qformat("[rbp - %]", (addr,)),
       Value::Param(idx) => argument_registers.data[idx].to_string(),
       Value::Literal(value) => fmt::to_string(value),
-      Value::Extrn(name) => fmt::qformat("[%]", (name.value(),)),
       Value::Label(name) => name.value(),
     }
     return String::from("::invalid value::");
