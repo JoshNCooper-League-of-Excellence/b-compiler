@@ -17,7 +17,7 @@ Emitter :: struct {
   registers: List!<(bool, Register)>,
   bss_section: fmt::StringBuilder,
   code: fmt::StringBuilder,
-  bp: u64,
+  sp: u64,
 }
 
 impl Emitter {
@@ -50,6 +50,7 @@ impl Emitter {
   visit_block :: fn(*mut self, block: Block) {
     old_scope := self.current_scope;
     self.current_scope = block.scope;
+    block.scope.parent = old_scope;
     for statement in block.statements {
       self.visit_statement(statement);
     }
@@ -70,7 +71,10 @@ impl Emitter {
   }
 
   visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
-    return .{};
+    left_value := self.visit_expression(left);
+    right_value := self.visit_expression(right);
+    inst::emit_binary(operator.to_inst(), left_value, right_value, &mut self.code, null);
+    return left_value;
   }
 
   visit_call :: fn(*mut self, callee: InternedString, args: List!<*mut Expression>) -> Value {

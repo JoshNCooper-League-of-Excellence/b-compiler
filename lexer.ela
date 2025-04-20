@@ -36,6 +36,18 @@ TType :: enum {
   Char        = elexify::TOKEN_CHAR,
 }
 
+impl TType {
+  to_inst :: fn(self) -> str {
+    switch self {
+      TType::Add => "add",
+      TType::Sub => "sub",
+      TType::Div => "div",
+      TType::Mul => "mul",
+    }
+    return "";
+  }
+}
+
 operators :: fn() -> Map!<str, u32> {
   return Map!<str, u32>::init(.[
     (",", TType::Comma),
