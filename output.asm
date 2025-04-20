@@ -9,26 +9,26 @@ mov rax, r10
 cqo
 div rbx
 mov [rbp - 8], rax ; storing Interned { "a" }
-icmp 0, 0 ; if (cond)
+cmp 0, 0 ; if (cond)
 je .cont0 ; if (!cond)
 .if0:
-mov r10, [rbp - 8] ; loading Interned { "a" }
+mov rbx, [rbp - 8] ; loading Interned { "a" }
 push rdi
-mov rdi, r10 ; load arg 0 -> 
-mov r10, rsi ; loading Interned { "b" }
+mov rdi, rbx ; load arg 0 -> 
+mov rbx, rsi ; loading Interned { "b" }
 push rsi
-mov rsi, r10 ; load arg 1 -> 
+mov rsi, rbx ; load arg 1 -> 
 call printn
 pop rdi ; restore
 pop rsi ; restore
 .cont0:
-mov r10, rdi ; loading Interned { "n" }
-mov r11, rsi ; loading Interned { "b" }
-mov rax, r10
+mov rbx, 0 ; loading literal
+mov r10, rsi ; loading Interned { "b" }
+mov r11, rdi ; loading Interned { "n" }
+mov rax, r11
 cqo
- r11
-mov r10, 0 ; loading literal
-add rdx, r10
+ r10
+add rdx, rbx
 push rdi
 mov rdi, rdx ; load arg 0 -> 
 call putchar

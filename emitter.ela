@@ -159,7 +159,7 @@ impl Emitter {
 
     condition_result := self.visit_expression(condition);
 
-    inst::emit_binary("icmp", condition_result, Value::Literal(0), &mut self.code, &const "if (cond)");
+    inst::emit_binary("cmp", condition_result, Value::Literal(0), &mut self.code, &const "if (cond)");
     inst::emit_unary("je", Value::Label(InternedString::new(cont_label)), &mut self.code, &const "if (!cond)");
 
     self.code.append(if_label);
