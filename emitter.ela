@@ -145,8 +145,8 @@ impl Emitter {
 
   visit_auto :: fn(*mut self, identifier: InternedString) {
     inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const "alloca");
-    value := Value::Stack(self.sp);
     self.sp += 8;
+    value := Value::Stack(self.sp);
     self.current_scope.insert(identifier, value);
   }
 
@@ -163,8 +163,20 @@ impl Emitter {
   visit_expression :: fn(*mut self, expression: *mut Expression) -> Value {
     switch is expression {
       // TODO: put literals into a register right away.
-      Expression::Literal(integer) => Value::Literal(integer),
-      Expression::Identifier(identifier) => *self.current_scope.get(identifier).unwrap(),
+      Expression::Literal(integer): {
+        val := Value::Register(self.register_take().unwrap());
+        inst::emit_binary("mov", val, Value::Literal(integer), &mut self.code, &const "loading literal")
+        return val;
+      },
+      Expression::Identifier(identifier): {
+        val := Value::Register(self.register_take().unwrap());
+        alloca := *self.current_scope.get(identifier).unwrap();
+        mut comment := fmt::qformat("loading %", (identifier,));
+        as_str := comment.as_str();
+        inst::emit_binary("mov", val, alloca, &mut self.code, &const as_str);
+        comment.deinit();
+        return val;
+      },
       Expression::Unary(operand, operator) => self.visit_unary(operand, operator),
       Expression::Binary(left, right, operator) => self.visit_binary(left, right, operator),
       Expression::Call(callee, args) => self.visit_call(callee, args),
