@@ -120,7 +120,23 @@ impl Emitter {
   }
 
   visit_call :: fn(*mut self, callee: InternedString, args: List!<*mut Expression>) -> Value {
-    return .{};
+    mut registers_to_restore: List!<Value>;
+    for i, arg in args.enumerate() {
+      value := self.visit_expression(arg);
+      self.free(value);
+      register := Value::Register(argument_registers.data[i]);
+      registers_to_restore.push(register);
+      inst::emit_unary("push", register, &mut self.code, null);
+      mut cmt_string := fmt::qformat("load arg % -> ", (i, argument_registers.data[i]));
+      cmt_str := cmt_string.as_str();
+      inst::emit_binary("mov", register, value, &mut self.code, &const cmt_str);
+      cmt_string.deinit();
+    } 
+    inst::emit_unary("call", Value::Label(callee), &mut self.code, null);
+    for register in registers_to_restore {
+      inst::emit_unary("pop", register, &mut self.code, &const "restore");
+    }
+    return Value::Register(Register::RAX);
   }
 
   visit_if :: fn(*mut self, condition: *mut Expression, mut block: Block) {
