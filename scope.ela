@@ -3,6 +3,7 @@ import fmt::*;
 import interned::Interned;
 
 Register :: enum {
+  RAX,
   RBX,
   RCX,
   RDX,
@@ -16,7 +17,6 @@ Register :: enum {
   R13,
   R14,
   R15,
-  RAX
 }
 
 impl Register {
