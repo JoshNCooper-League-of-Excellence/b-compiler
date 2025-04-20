@@ -161,7 +161,9 @@ impl Emitter {
   }
 
   visit_auto :: fn(*mut self, identifier: InternedString) {
-    inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const "alloca");
+    mut comment := fmt::qformat("alloca %", (identifier,));
+    as_str := comment.as_str();
+    inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const as_str);
     self.sp += 8;
     value := Value::Stack(self.sp);
     self.current_scope.insert(identifier, value);

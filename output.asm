@@ -2,7 +2,7 @@ extern putchar
 printn:
 push rbp
 mov rbp, rsp
-sub rsp, 8 ; alloca
+sub rsp, 8 ; alloca Interned { "a" }
 mov rbx, rsi ; loading Interned { "b" }
 mov r10, rdi ; loading Interned { "n" }
 mov rax, r10
