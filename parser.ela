@@ -1,52 +1,19 @@
 import lexer::*;
 import map::Map;
-import llvm::LLVMValueRef;
+import scope::*;
 
-BType :: enum {
-  Integer,
-  Function,
-  Pointer, // Not even supported by us yet.
-}
-
-Variable :: struct {
-  type: BType,
-  llvm_value: LLVMValueRef,
-  // args, return.
-  inferred_function_signature: Option!<(List!<BType>, BType)>
-}
 Function :: struct {
   parameters: List!<InternedString>,
   block:      Block,
 }
 
-Scope :: struct {
-  parent: Option!<*mut Scope>,
-  variables: Map!<InternedString, Variable>,
-}
-
-impl Scope {
-  get :: fn(*mut self, name: InternedString) -> Option!<*mut Variable> {
-    if self.variables.contains(name) {
-      return self.variables.get_mut(name);
-    }
-    if self.parent is Option!<*mut Scope>::Some(scope) {
-      return scope.get(name);
-    }
-    return Option!<*mut Variable>::None;
-  }
-  insert :: fn(*mut self, name: InternedString, variable: Option!<Variable>) {
-    self.variables.insert(name, variable.or_else(Variable.{type: BType::Integer}));
-  }
-}
-
 Program :: struct {
   functions: List!<Function>,
-  scope: Scope,
 }
 
 Block :: struct {
   statements: List!<*mut Statement>,
-  scope: Scope,
+  scope: *mut Scope,
 }
 
 Statement :: choice {
@@ -141,7 +108,6 @@ parse_postfix :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
         return null;
       }
     }
-    // todo: add subscript.
   }
   return left;
 }
@@ -216,6 +182,7 @@ parse_statement :: fn(lexer: *mut elexify::Lexer) -> *mut Statement {
 
 parse_block :: fn(lexer: *mut elexify::Lexer) -> Block {
   mut block: Block;
+  block.scope = new(Scope.{});
   if !lexer.peek().is_type(TType::OpenCurly) {
     block.statements.push(parse_statement(lexer));
     return block;

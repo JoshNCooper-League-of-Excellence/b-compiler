@@ -1,6 +1,5 @@
 import lexer::*;
 import parser::*;
-import analyzer::*;
 import emitter::*;
 
 main :: fn() {
@@ -11,16 +10,10 @@ main :: fn() {
   );
 
   mut state := elexify::State::from_file("sample.b");
-
   lexer.push_state(state);
-  
-  program := parser::parse_program(&mut lexer);
 
-  mut analyzer: Analyzer;
-  analyzer.visit_program(program);
+  program := parse_program(&mut lexer);
 
-  mut emitter := Emitter::new();
+  mut emitter := Emitter.{};
   emitter.visit_program(program);
-
-  emitter.compile(CompilationMode::Release);
 }

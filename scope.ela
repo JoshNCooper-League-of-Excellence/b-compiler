@@ -1,0 +1,89 @@
+import map::*;
+import fmt::*;
+import interned::Interned;
+
+Register :: enum {
+  RBX,
+  RCX,
+  RDX,
+  RSI,
+  RDI,
+  R8,
+  R9,
+  R10,
+  R11,
+  R12,
+  R13,
+  R14,
+  R15,
+  RAX
+}
+
+impl Register {
+  to_string :: fn(self) -> String {
+    switch self {
+      Register::RBX => String::from("rbx"),
+      Register::R8 => String::from("r8"),
+      Register::R9 => String::from("r9"),
+      Register::R10 => String::from("r10"),
+      Register::R11 => String::from("r11"),
+      Register::R12 => String::from("r12"),
+      Register::R13 => String::from("r13"),
+      Register::R14 => String::from("r14"),
+      Register::R15  => String::from("r15"),
+      Register::RAX => String::from("rax"),
+    }
+    return String::from("::invalid register value::");
+  }
+}
+
+#static argument_registers := Register.[
+  Register::RDI,
+  Register::RSI,
+  Register::RDX,
+  Register::RCX,
+  Register::R8,
+  Register::R9,
+];
+
+Value :: choice {
+  Register(Register),
+  Stack(u64),
+  Param(s64),
+  Literal(s64),
+  Function,
+  Extrn(Interned!<String>),
+}
+
+impl Value {
+  to_string :: fn(self, bp: u64) -> String {
+    switch is self {
+      Value::Register(reg) => reg.to_string(),
+      Value::Stack(addr) => fmt::to_string(bp + addr),
+      Value::Param(idx) => argument_registers.data[idx].to_string(),
+      Value::Literal(value) => fmt::to_string(value),
+      Value::Extrn(name) => fmt::qformat("[%]", (name.value(),)),
+    }
+    return String::from("::invalid value::");
+  }
+}
+
+Scope :: struct {
+  parent: Option!<*mut Scope>,
+  variables: Map!<Interned!<String>, Value>,
+}
+
+impl Scope {
+  get :: fn(*mut self, name: Interned!<String>) -> Option!<*mut Value> {
+    if self.variables.contains(name) {
+      return self.variables.get_mut(name);
+    }
+    if self.parent is Option!<*mut Scope>::Some(scope) {
+      return scope.get(name);
+    }
+    return Option!<*mut Value>::None;
+  }
+  insert :: fn(*mut self, name: Interned!<String>, variable: Value) {
+    self.variables.insert(name, variable);
+  }
+}
