@@ -85,6 +85,8 @@ impl Emitter {
     for i, param in function.parameters.enumerate() {
       function.block.scope.insert(param, Value::Param(i as u16));
     }
+    self.code.append(function.name);
+    self.code.append(":\n");
     self.visit_block(function.block);
   }
 

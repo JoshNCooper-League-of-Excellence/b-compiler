@@ -3,6 +3,7 @@ import map::Map;
 import scope::*;
 
 Function :: struct {
+  name: InternedString,
   parameters: List!<InternedString>,
   block:      Block,
 }
@@ -196,9 +197,9 @@ parse_block :: fn(lexer: *mut elexify::Lexer) -> Block {
 }
 
 parse_function :: fn(lexer: *mut elexify::Lexer) -> Function {
-  name := lexer.expect(TType::Identifier);
-  lexer.expect(TType::OpenParen);
   mut function: Function;
+  function.name = lexer.expect(TType::Identifier).value.unwrap();
+  lexer.expect(TType::OpenParen);
   while lexer.peek().is_type(TType::Identifier) {
     function.parameters.push(lexer.eat().value.unwrap());
     if !lexer.peek().is_type(TType::CloseParen) {
