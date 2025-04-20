@@ -4,3 +4,5 @@
 /.cache
 /expected
 /expected.o
+/output
+/output.asm
