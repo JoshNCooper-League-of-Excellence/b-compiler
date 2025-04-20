@@ -64,6 +64,14 @@ impl Emitter {
 
 impl Emitter {
   visit_program :: fn(*mut self, mut program: Program) {
+    self.code.append("global _start\n");
+    self.code.append("_start:\n");
+    self.code.append("  call main\n");
+    self.code.append("  mov rax, 60\n");
+    self.code.append("  xor rdi, rdi\n");
+    self.code.append("  syscall\n");
+    self.code.append("  ret\n");
+
     self.current_scope = new(Scope.{});
     for function in program.functions {
       self.visit_function(function);
@@ -108,7 +116,7 @@ impl Emitter {
         as_str := comment.as_str();
         inst::emit_binary("mov", alloca, right_value, &mut self.code, &const as_str);
         comment.deinit();
-        return Value::Literal(0);
+        return right_value;
       } else {
         panic("cannot assign to non symbol");
       }
@@ -158,6 +166,7 @@ impl Emitter {
     if_id++;
 
     condition_result := self.visit_expression(condition);
+    self.free(condition_result);
 
     inst::emit_binary("cmp", condition_result, Value::Literal(0), &mut self.code, &const "if (cond)");
     inst::emit_unary("je", Value::Label(InternedString::new(cont_label)), &mut self.code, &const "if (!cond)");
@@ -189,7 +198,7 @@ impl Emitter {
     switch is statement {
       Statement::Extrn(identifier): { self.visit_extrn(identifier); }
       Statement::Auto(identifier): { self.visit_auto(identifier); }
-      Statement::Expression(expression): { self.visit_expression(expression); }
+      Statement::Expression(expression): { self.free(self.visit_expression(expression)); }
       Statement::If(condition, block): { self.visit_if(condition, block); }
       else: { panic("Unhandled statement type"); }
     }

@@ -1,4 +1,12 @@
 extern putchar
+extern exit
+global _start
+_start:
+  call main
+  mov rax, 60
+  xor rdi, rdi
+  syscall
+  ret
 printn:
 push rbp
 mov rbp, rsp
@@ -9,7 +17,7 @@ mov rax, r10
 cqo
 idiv rbx
 mov [rbp - 8], rax ; storing Interned { "a" }
-cmp 0, 0 ; if (cond)
+cmp rax, 0 ; if (cond)
 je .cont0 ; if (!cond)
 .if0:
 mov rbx, [rbp - 8] ; loading Interned { "a" }
@@ -32,6 +40,15 @@ add rdx, rbx
 push rdi
 mov rdi, rdx ; load arg 0 -> 
 call putchar
+pop rdi ; restore
+ret
+main:
+push rbp
+mov rbp, rsp
+mov rbx, 0 ; loading literal
+push rdi
+mov rdi, rbx ; load arg 0 -> 
+call exit
 pop rdi ; restore
 ret
 
