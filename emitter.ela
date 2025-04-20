@@ -36,6 +36,16 @@ impl Emitter {
         then *taken = false;
     }
   }
+  free :: fn(*mut self, value: Value) {
+    // TODO: free stack as well
+    if left_value is Value::Register(reg) {
+      // we dont free rax or rdx because we reserve it for div results
+      if reg == Register::RAX || reg == Register::RDX {
+        return;
+      }
+      self.register_return(reg);
+    }
+  }
 }
 
 impl Emitter {
@@ -73,7 +83,20 @@ impl Emitter {
   visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
     left_value := self.visit_expression(left);
     right_value := self.visit_expression(right);
-    inst::emit_binary(operator.to_inst(), left_value, right_value, &mut self.code, null);
+    if operator == TType::Div || operator == TType::Modulo {
+      inst::emit_binary("mov", Value::Register(Register::RAX), left_value, &mut self.code, null);
+      inst::emit_nullary("cqo", &mut self.code, null)
+      free(left_value);
+      inst::emit_unary(operator.to_inst(), right_value, &mut self.code, null);
+      if operator == TType::Div {
+        left_value = Value::Register(Register::RAX);
+      } else {
+        left_value =  Value::Register(Register::RDX);
+      }
+    } else {
+      inst::emit_binary(operator.to_inst(), left_value, right_value, &mut self.code, null);
+    }
+    free(right_value);
     return left_value;
   }
 
