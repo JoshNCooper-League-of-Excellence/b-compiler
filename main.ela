@@ -16,4 +16,5 @@ main :: fn() {
 
   mut emitter := Emitter.{};
   emitter.visit_program(program);
+
 }

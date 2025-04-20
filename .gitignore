@@ -1,4 +1,6 @@
 
 /main
 /.vscode
-/.cachegi
+/.cache
+/expected
+/expected.o
