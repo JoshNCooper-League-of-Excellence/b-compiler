@@ -60,6 +60,8 @@ impl u32 {
 parse_block :: fn(lexer: *mut elexify::Lexer) -> Block;
 parse_expression :: fn(lexer: *mut elexify::Lexer) -> *mut Expression;
 
+#foreign strtol :: fn(data: c_str, end: *const c_str, base: s32) -> s64;
+
 parse_primary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   token := lexer.eat();
   switch token.type {
@@ -79,10 +81,10 @@ parse_primary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
       return new(Expression::Identifier(string));
     }
     TType::Char: {
-      mut string := *token.value.unwrap().data;
-      integer := atoi(string.data);
-      string.deinit();
-      return new(Expression::Literal(integer));
+    mut string := *token.value.unwrap().data;
+    integer := strtol(string.data, null, 16);
+    string.deinit();
+    return new(Expression::Literal(integer));
     }
   }
   lex_error("failed to parse primary expression", token.location);
