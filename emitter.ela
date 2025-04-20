@@ -87,7 +87,10 @@ impl Emitter {
     }
     self.code.append(function.name);
     self.code.append(":\n");
+    self.code.append("push rbp\nmov rbp, rsp\n");
+    self.sp = 0;
     self.visit_block(function.block);
+    self.code.append("ret\n");
   }
 
   visit_unary :: fn(*mut self, operand: *mut Expression, operator: TType) -> Value {

@@ -1,4 +1,7 @@
 extern putchar
+printn:
+push rbp
+mov rbp, rsp
 sub rsp, 8 ; alloca
 mov rbx, [rbp - 8] ; loading Interned { "a" }
 mov r10, rdi ; loading Interned { "n" }
@@ -11,4 +14,5 @@ icmp rbx, 0 ; if (cond)
 je .cont0 ; if (!cond)
 .if0:
 .cont0:
+ret
 
