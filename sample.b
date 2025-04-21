@@ -14,6 +14,7 @@ printn(n,b) {
 
 main() {
   extrn exit;
-  putchar('A');
+  printn(10, 10);
+  putchar('\n');
   exit(1);
 }

@@ -5,7 +5,7 @@ import elexify::*;
 import interned;
 
 
-TType :: enum {
+enum TType {
   Comma, 
   Semicolon,
 
@@ -37,7 +37,7 @@ TType :: enum {
 }
 
 impl TType {
-  to_inst :: fn(self) -> str {
+  fn to_inst(self) -> str {
     switch self {
       TType::Add => "add",
       TType::Sub => "sub",
@@ -48,7 +48,7 @@ impl TType {
   }
 }
 
-operators :: fn() -> Map!<str, u32> {
+fn operators() -> Map!<str, u32> {
   return Map!<str, u32>::init(.[
     (",", TType::Comma),
     (";", TType::Semicolon),
@@ -69,7 +69,7 @@ operators :: fn() -> Map!<str, u32> {
   ]);
 }
 
-keywords :: fn() -> Map!<str, u32> {
+fn keywords() -> Map!<str, u32> {
   return Map!<str, u32>::init(.[
     ("extrn", TType::Extrn),
     ("auto", TType::Auto),

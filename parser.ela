@@ -2,22 +2,22 @@ import lexer::*;
 import map::Map;
 import scope::*;
 
-Function :: struct {
+struct Function {
   name: InternedString,
   parameters: List!<InternedString>,
   block:      Block,
 }
 
-Program :: struct {
+struct Program {
   functions: List!<Function>,
 }
 
-Block :: struct {
+struct Block {
   statements: List!<*mut Statement>,
   scope: *mut Scope,
 }
 
-Statement :: choice {
+choice Statement {
   // Declarations.
   Extrn(InternedString),
   Auto(InternedString),
@@ -28,7 +28,7 @@ Statement :: choice {
 }
 
 // char literals are represented as integers.
-Expression :: choice {
+choice Expression {
   Literal(s64),
   Identifier(InternedString),
   Unary(*mut Expression, TType),
@@ -36,14 +36,14 @@ Expression :: choice {
   Call(InternedString, List!<*mut Expression>),
 }
 
-Precedence :: enum {
+enum Precedence {
   Assignment,      // For '='
   Additive,        // For '+' and '-'
   Multiplicative,  // For '*', '/', and '%'
 }
 
 impl u32 {
-  to_precedence :: fn(self) -> Precedence {
+  fn to_precedence(self) -> Precedence {
     switch self {
       TType::Add => Precedence::Additive,
       TType::Sub => Precedence::Additive,
@@ -57,12 +57,12 @@ impl u32 {
   }
 }
 
-parse_block :: fn(lexer: *mut elexify::Lexer) -> Block;
-parse_expression :: fn(lexer: *mut elexify::Lexer) -> *mut Expression;
+fn parse_block(lexer: *mut elexify::Lexer) -> Block;
+fn parse_expression(lexer: *mut elexify::Lexer) -> *mut Expression;
 
-#foreign strtol :: fn(data: c_str, end: *const c_str, base: s32) -> s64;
+#foreign fn strtol(data: c_str, end: *const c_str, base: s32) -> s64;
 
-parse_primary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
+fn parse_primary(lexer: *mut elexify::Lexer) -> *mut Expression {
   token := lexer.eat();
   switch token.type {
     TType::OpenParen: {
@@ -91,7 +91,7 @@ parse_primary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   return null;
 }
 
-parse_postfix :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
+fn parse_postfix(lexer: *mut elexify::Lexer) -> *mut Expression {
   left := parse_primary(lexer);
   switch lexer.peek().type {
     TType::OpenParen: {
@@ -115,7 +115,7 @@ parse_postfix :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   return left;
 }
 
-parse_unary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression { 
+fn parse_unary(lexer: *mut elexify::Lexer) -> *mut Expression { 
   left := parse_postfix(lexer);
   token := lexer.peek();
   switch token.type {
@@ -127,7 +127,7 @@ parse_unary :: fn(lexer: *mut elexify::Lexer) -> *mut Expression {
   return left;
 }
 
-parse_binary :: fn(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *mut Expression {
+fn parse_binary(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *mut Expression {
   mut left := parse_unary(lexer);
 
   while true {
@@ -146,11 +146,11 @@ parse_binary :: fn(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *m
   return left;
 }
 
-parse_expression :: fn(lexer: *mut elexify::Lexer) -> *mut Expression { 
+fn parse_expression(lexer: *mut elexify::Lexer) -> *mut Expression { 
   return parse_binary(lexer, 0);
 }
 
-parse_statement :: fn(lexer: *mut elexify::Lexer) -> *mut Statement {
+fn parse_statement(lexer: *mut elexify::Lexer) -> *mut Statement {
   token := lexer.peek();
   switch token.type {
     TType::Identifier: {
@@ -183,7 +183,7 @@ parse_statement :: fn(lexer: *mut elexify::Lexer) -> *mut Statement {
   return null;
 }
 
-parse_block :: fn(lexer: *mut elexify::Lexer) -> Block {
+fn parse_block(lexer: *mut elexify::Lexer) -> Block {
   mut block: Block;
   block.scope = new(Scope.{});
   if !lexer.peek().is_type(TType::OpenCurly) {
@@ -198,7 +198,7 @@ parse_block :: fn(lexer: *mut elexify::Lexer) -> Block {
   return block;
 }
 
-parse_function :: fn(lexer: *mut elexify::Lexer) -> Function {
+fn parse_function(lexer: *mut elexify::Lexer) -> Function {
   mut function: Function;
   function.name = lexer.expect(TType::Identifier).value.unwrap();
   lexer.expect(TType::OpenParen);
@@ -213,7 +213,7 @@ parse_function :: fn(lexer: *mut elexify::Lexer) -> Function {
   return function;
 }
 
-parse_program :: fn(lexer: *mut elexify::Lexer) -> Program {
+fn parse_program(lexer: *mut elexify::Lexer) -> Program {
   mut program: Program;
   while !lexer.peek().is_eof() {
     program.functions.push(parse_function(lexer));

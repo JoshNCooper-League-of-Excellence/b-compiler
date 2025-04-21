@@ -1,7 +1,7 @@
 import scope::*;
 import fmt::StringBuilder;
 
-emit_unary :: fn(inst: str, operand: Value, code: *mut fmt::StringBuilder, comment: *const str) {
+fn emit_unary(inst: str, operand: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
     code.appendf("% % ; %\n", (inst, operand.to_string(), *comment), FormatOptions::default());
   } else {
@@ -9,7 +9,7 @@ emit_unary :: fn(inst: str, operand: Value, code: *mut fmt::StringBuilder, comme
   }
 }
 
-emit_binary :: fn(inst: str, dest: Value, src: Value, code: *mut fmt::StringBuilder, comment: *const str) {
+fn emit_binary(inst: str, dest: Value, src: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
     code.appendf("% %, % ; %\n", (inst, dest.to_string(), src.to_string(), *comment), FormatOptions::default());
   } else {
@@ -17,7 +17,7 @@ emit_binary :: fn(inst: str, dest: Value, src: Value, code: *mut fmt::StringBuil
   }
 }
 
-emit_nullary :: fn(inst: str, code: *mut fmt::StringBuilder, comment: *const str) {
+fn emit_nullary(inst: str, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
     code.appendf("% ; %\n", (inst, *comment), FormatOptions::default());
   } else {

@@ -2,7 +2,7 @@ import map::*;
 import fmt::*;
 import interned::Interned;
 
-Register :: enum {
+enum Register {
   RAX,
   RBX,
   RCX,
@@ -22,7 +22,7 @@ Register :: enum {
 }
 
 impl Register {
-  to_string :: fn(self) -> String {
+  fn to_string(self) -> String {
     switch self {
       Register::RDI => String::from("rdi"),
       Register::RSI => String::from("rsi"),
@@ -54,7 +54,7 @@ impl Register {
   Register::R9,
 ];
 
-Value :: choice {
+choice Value {
   Register(Register),
   Stack(s64),
   Param(u16),
@@ -63,7 +63,7 @@ Value :: choice {
 }
 
 impl Value {
-  to_string :: fn(self) -> String {
+  fn to_string(self) -> String {
     switch is self {
       Value::Register(reg) => reg.to_string(),
       Value::Stack(addr) => fmt::qformat("[rbp - %]", (addr,)),
@@ -75,13 +75,13 @@ impl Value {
   }
 }
 
-Scope :: struct {
+struct Scope {
   parent: Option!<*mut Scope>,
   variables: Map!<Interned!<String>, Value>,
 }
 
 impl Scope {
-  get :: fn(*mut self, name: Interned!<String>) -> Option!<*mut Value> {
+  fn get(*mut self, name: Interned!<String>) -> Option!<*mut Value> {
     if self.variables.contains(name) {
       return self.variables.get_mut(name);
     }
@@ -90,7 +90,7 @@ impl Scope {
     }
     return Option!<*mut Value>::None;
   }
-  insert :: fn(*mut self, name: Interned!<String>, variable: Value) {
+  fn insert(*mut self, name: Interned!<String>, variable: Value) {
     self.variables.insert(name, variable);
   }
 }

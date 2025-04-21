@@ -4,7 +4,7 @@ import fmt::{
   StringBuilder,
 };
 
-CompilationMode :: enum {
+enum CompilationMode {
   Default = 0,
   Debug   = 0,
   Release = 1
@@ -12,7 +12,7 @@ CompilationMode :: enum {
 
 import inst::*;
 
-Emitter :: struct {
+struct Emitter {
   current_scope: *mut Scope,
   registers: List!<(bool, Register)>,
   externs: fmt::StringBuilder,
@@ -21,7 +21,7 @@ Emitter :: struct {
 }
 
 impl Emitter {
-  new :: fn() -> Emitter {
+  fn new() -> Emitter {
     return .{
       registers: List!<(bool, Register)>::init(.[
         (false, Register::RBX),
@@ -35,7 +35,7 @@ impl Emitter {
 
     }
   }
-  register_take :: fn(*mut self) -> Option!<Register> {
+  fn register_take(*mut self) -> Option!<Register> {
     for *taken, register in self.registers.iter_mut() {
       if *taken 
         then continue;
@@ -44,13 +44,13 @@ impl Emitter {
     }
     return None();
   }
-  register_return :: fn(*mut self, register: Register) {
+  fn register_return(*mut self, register: Register) {
     for *taken, reg in self.registers.iter_mut() {
       if register == reg 
         then *taken = false;
     }
   }
-  free :: fn(*mut self, value: Value) {
+  fn free(*mut self, value: Value) {
     // TODO: free stack as well
     if value is Value::Register(reg) {
       // we dont free rax or rdx because we reserve it for div results
@@ -63,7 +63,7 @@ impl Emitter {
 }
 
 impl Emitter {
-  visit_program :: fn(*mut self, mut program: Program) {
+  fn visit_program(*mut self, mut program: Program) {
     self.code.append("global _start\n");
     self.code.append("_start:\n");
     self.code.append("  call main\n");
@@ -79,7 +79,7 @@ impl Emitter {
     self.current_scope = null;
   }
 
-  visit_block :: fn(*mut self, mut block: Block) {
+  fn visit_block(*mut self, mut block: Block) {
     old_scope := self.current_scope;
     self.current_scope = block.scope;
     block.scope.parent = Some(old_scope);
@@ -89,7 +89,7 @@ impl Emitter {
     self.current_scope = old_scope;
   }
 
-  visit_function :: fn(*mut self, function: Function) {
+  fn visit_function(*mut self, function: Function) {
     for i, param in function.parameters.enumerate() {
       function.block.scope.insert(param, Value::Param(i as u16));
     }
@@ -101,13 +101,13 @@ impl Emitter {
     self.code.append("ret\n");
   }
 
-  visit_unary :: fn(*mut self, operand: *mut Expression, operator: TType) -> Value {
+  fn visit_unary(*mut self, operand: *mut Expression, operator: TType) -> Value {
     operand_result := self.visit_expression(operand);
     inst::emit_unary("neg", operand_result, &mut self.code, &const "negate");
     return operand_result;
   }
 
-  visit_binary :: fn(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
+  fn visit_binary(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
     right_value := self.visit_expression(right);
     if operator == TType::Assign {
       if left is Expression::Identifier(identifier) {
@@ -139,7 +139,7 @@ impl Emitter {
     return left_value;
   }
 
-  visit_call :: fn(*mut self, callee: InternedString, args: List!<*mut Expression>) -> Value {
+  fn visit_call(*mut self, callee: InternedString, args: List!<*mut Expression>) -> Value {
     mut registers_to_restore: List!<Value>;
     for i, arg in args.enumerate() {
       value := self.visit_expression(arg);
@@ -162,7 +162,7 @@ impl Emitter {
     return Value::Register(Register::RAX);
   }
 
-  visit_if :: fn(*mut self, condition: *mut Expression, mut block: Block) {
+  fn visit_if(*mut self, condition: *mut Expression, mut block: Block) {
     #static mut if_id: u64 = 0;
     if_label := fmt::qformat(".if%", (if_id,));
     cont_label := fmt::qformat(".cont%", (if_id,));
@@ -181,14 +181,14 @@ impl Emitter {
     self.code.append(":\n");
   }
 
-  visit_extrn :: fn(*mut self, identifier: InternedString) {
+  fn visit_extrn(*mut self, identifier: InternedString) {
     // TODO: this wont work for global variables.
     self.externs.appendf("extern %\n", (identifier.value(),), fmt::FormatOptions::default());
     value := Value::Label(identifier);
     self.current_scope.insert(identifier, value);
   }
 
-  visit_auto :: fn(*mut self, identifier: InternedString) {
+  fn visit_auto(*mut self, identifier: InternedString) {
     mut comment := fmt::qformat("alloca %", (identifier,));
     as_str := comment.as_str();
     inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(8), &mut self.code, &const as_str);
@@ -197,7 +197,7 @@ impl Emitter {
     self.current_scope.insert(identifier, value);
   }
 
-  visit_statement :: fn(*mut self, statement: *mut Statement) {
+  fn visit_statement(*mut self, statement: *mut Statement) {
     switch is statement {
       Statement::Extrn(identifier): { self.visit_extrn(identifier); }
       Statement::Auto(identifier): { self.visit_auto(identifier); }
@@ -207,7 +207,7 @@ impl Emitter {
     }
   }
 
-  visit_expression :: fn(*mut self, expression: *mut Expression) -> Value {
+  fn visit_expression(*mut self, expression: *mut Expression) -> Value {
     switch is expression {
       // TODO: put literals into a register right away.
       Expression::Literal(integer): {
