@@ -102,9 +102,14 @@ impl Emitter {
   }
 
   fn visit_unary(*mut self, operand: *mut Expression, operator: TType) -> Value {
-    operand_result := self.visit_expression(operand);
-    inst::emit_unary("neg", operand_result, &mut self.code, &const "negate");
-    return operand_result;
+    mut operand_value := self.visit_expression(operand);
+    if operand_value is Value::Literal {
+      value := Value::Register(self.register_take().unwrap());
+      inst::emit_binary("mov", value, operand_value, &mut self.code, &const "loading literal")
+      operand_value = value;
+    }
+    inst::emit_unary("neg", operand_value, &mut self.code, &const "negate");
+    return operand_value;
   }
 
   fn visit_binary(*mut self, left: *mut Expression, right: *mut Expression, operator: TType) -> Value {
@@ -121,7 +126,15 @@ impl Emitter {
         panic("cannot assign to non symbol");
       }
     }
+
     mut left_value := self.visit_expression(left);
+    // if the LHS is a literal we need to put it into a register
+    if left_value is Value::Literal {
+      value := Value::Register(self.register_take().unwrap());
+      inst::emit_binary("mov", value, left_value, &mut self.code, &const "loading literal")
+      left_value = value;
+    }
+
     if operator == TType::Div || operator == TType::Modulo {
       inst::emit_binary("mov", Value::Register(Register::RAX), left_value, &mut self.code, null);
       inst::emit_nullary("cqo", &mut self.code, null)
@@ -135,29 +148,28 @@ impl Emitter {
     } else {
       inst::emit_binary(operator.to_inst(), left_value, right_value, &mut self.code, null);
     }
+
     self.free(right_value);
     return left_value;
   }
 
   fn visit_call(*mut self, callee: InternedString, args: List!<*mut Expression>) -> Value {
-    mut registers_to_restore: List!<Value>;
     for i, arg in args.enumerate() {
       value := self.visit_expression(arg);
       self.free(value);
       register := Value::Register(argument_registers.data[i]);
-      registers_to_restore.push(register);
-      inst::emit_unary("push", register, &mut self.code, &const "save state (call)");
       mut cmt_string := fmt::qformat("load arg % -> ", (i, argument_registers.data[i]));
       cmt_str := cmt_string.as_str();
       inst::emit_binary("mov", register, value, &mut self.code, &const cmt_str);
       cmt_string.deinit();
     }
-    alignment := 16 - (self.sp + registers_to_restore.length * 8) % 16;
-    inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "aligning stack");
-    inst::emit_unary("call", Value::Label(callee), &mut self.code, null);
-    inst::emit_binary("add", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "restoring stack");
-    for register in registers_to_restore {
-      inst::emit_unary("pop", register, &mut self.code, &const "restore state (call)");
+    alignment := 16 - (self.sp + args.length * 8) % 16;
+    if (alignment != 16 && alignment != 0) {
+      inst::emit_binary("sub", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "aligning stack");
+      inst::emit_unary("call", Value::Label(callee), &mut self.code, null);
+      inst::emit_binary("add", Value::Register(Register::RSP), Value::Literal(alignment), &mut self.code, &const "restoring stack");
+    } else {
+      inst::emit_unary("call", Value::Label(callee), &mut self.code, null);
     }
     return Value::Register(Register::RAX);
   }
@@ -209,11 +221,8 @@ impl Emitter {
 
   fn visit_expression(*mut self, expression: *mut Expression) -> Value {
     switch is expression {
-      // TODO: put literals into a register right away.
       Expression::Literal(integer): {
-        val := Value::Register(self.register_take().unwrap());
-        inst::emit_binary("mov", val, Value::Literal(integer), &mut self.code, &const "loading literal")
-        return val;
+        return Value::Literal(integer);
       },
       Expression::Identifier(identifier): {
         val := Value::Register(self.register_take().unwrap());

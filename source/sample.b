@@ -4,17 +4,17 @@
    code values.  */
 
 printn(n,b) {
-   extrn putchar;
-   auto a;
+  extrn putchar;
+  auto a;
 
-   if(a=n/b) /* assignment, not test for equality */
-      printn(a, b); /* recursive */
-   putchar(n%b + '0');
+  if(a=n/b) /* assignment, not test for equality */
+    printn(a, b); /* recursive */
+  putchar(n%b + '0');
 }
 
 main() {
   extrn exit;
   printn(10, 10);
   putchar('\n');
-  exit(1);
+  exit(0);
 }

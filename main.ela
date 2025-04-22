@@ -3,6 +3,24 @@ import parser::*;
 import emitter::*;
 import fs::*;
 
+module std {
+  fn system(command: String) {
+    extern fn system(command: *const u8) -> s32;
+    result := system(command.data);
+    if (result != 0) {
+      fmt::printlnf("% failed to execute.", (command,));
+    }
+  }
+}
+
+fn without_extension(mut path: String) -> String {
+  while (path.back().unwrap() != '.') {
+    path.pop();
+  }
+  path.pop();
+  return path;
+}
+
 fn main() {
   mut lexer := elexify::Lexer::new(
     Some(operators()),
@@ -10,16 +28,52 @@ fn main() {
     Some(List!<str>.{}),
   );
 
-  mut state := elexify::State::from_file("sample.b");
-  lexer.push_state(state);
+  args := Env::args();
+  if args.length == 1 {
+    panic("must provide a filename");
+  }
 
-  program := parse_program(&mut lexer);
+  filename := String::from(args[1]);
+  lexer.push_state(elexify::State::from_file(filename));
 
+  defer filename.deinit();
+  
+
+  mut code: String;
   mut emitter := Emitter::new();
-  emitter.visit_program(program);
+  // Compile the program and get a string representation.
+  {
+    program := parse_program(&mut lexer);
+    emitter.visit_program(program);
+    the_code := emitter.code.get_string();
+    emitter.externs.appendf("%\n", (the_code,), fmt::FormatOptions::default());
+    code = emitter.externs.get_string();
+    
+    // the_code.deinit();
+    // emitter.code.deinit();
+    // emitter.externs.deinit();
+  }
 
-  emitter.externs.appendf("%\n", (emitter.code.get_string(),), fmt::FormatOptions::default());
+  path := without_extension(filename);
+  // defer path.deinit();
 
-  fs::File::write_all("output.asm", emitter.externs.get_string());
+  { // write out asm file.
+    asm_path := fmt::qformat("%.asm", (path,));
+    fs::File::write_all(asm_path, code);
+    // asm_path.deinit();
+  }
 
+  { // compile assembly to object file.
+    mut command := fmt::qformat("nasm %.asm -felf64 -o %.o", (path, path));
+    fmt::println(command);
+    std::system(command);
+    // command.deinit();
+  }
+
+  { // compile object file to exectuable.
+    command := fmt::qformat("clang %.o -o % -nostartfiles -no-pie \"$@\"", (path, path));
+    fmt::println(command);
+    std::system(command);
+    // command.deinit();
+  }
 }

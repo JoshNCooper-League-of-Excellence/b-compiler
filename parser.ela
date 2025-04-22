@@ -60,7 +60,7 @@ impl u32 {
 fn parse_block(lexer: *mut elexify::Lexer) -> Block;
 fn parse_expression(lexer: *mut elexify::Lexer) -> *mut Expression;
 
-#foreign fn strtol(data: c_str, end: *const c_str, base: s32) -> s64;
+extern fn strtol(data: c_str, end: *const c_str, base: s32) -> s64;
 
 fn parse_primary(lexer: *mut elexify::Lexer) -> *mut Expression {
   token := lexer.eat();
@@ -73,7 +73,7 @@ fn parse_primary(lexer: *mut elexify::Lexer) -> *mut Expression {
     TType::Integer: {
       mut string := *token.value.unwrap().data;
       integer := atoi(string.data);
-      string.deinit();
+      // string.deinit(); ! TODO: fix strings. terrible struct needs a ton of work.
       return new(Expression::Literal(integer));
     }
     TType::Identifier: {
@@ -83,7 +83,7 @@ fn parse_primary(lexer: *mut elexify::Lexer) -> *mut Expression {
     TType::Char: {
     mut string := *token.value.unwrap().data;
     integer := strtol(string.data, null, 16);
-    string.deinit();
+    // string.deinit();
     return new(Expression::Literal(integer));
     }
   }
@@ -116,15 +116,14 @@ fn parse_postfix(lexer: *mut elexify::Lexer) -> *mut Expression {
 }
 
 fn parse_unary(lexer: *mut elexify::Lexer) -> *mut Expression { 
-  left := parse_postfix(lexer);
   token := lexer.peek();
   switch token.type {
     TType::Sub: {
       lexer.eat();
-      return new(Expression::Unary(left, token.type));
+      return new(Expression::Unary(parse_postfix(lexer), token.type));
     }
   }
-  return left;
+  return parse_postfix(lexer);
 }
 
 fn parse_binary(lexer: *mut elexify::Lexer, min_precedence: Precedence) -> *mut Expression {
