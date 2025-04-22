@@ -3,17 +3,17 @@ import fmt::StringBuilder;
 
 fn emit_unary(inst: str, operand: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
-    code.appendf("% % ; %\n", (inst, operand.to_string(), *comment), FormatOptions::default());
+    code.appendf("% % ; %\n", (inst, operand, *comment), FormatOptions::default());
   } else {
-    code.appendf("% %\n", (inst, operand.to_string()), FormatOptions::default());
+    code.appendf("% %\n", (inst, operand), FormatOptions::default());
   }
 }
 
 fn emit_binary(inst: str, dest: Value, src: Value, code: *mut fmt::StringBuilder, comment: *const str) {
   if comment {
-    code.appendf("% %, % ; %\n", (inst, dest.to_string(), src.to_string(), *comment), FormatOptions::default());
+    code.appendf("% %, % ; %\n", (inst, dest, src, *comment), FormatOptions::default());
   } else {
-    code.appendf("% %, %\n", (inst, dest.to_string(), src.to_string()), FormatOptions::default());
+    code.appendf("% %, %\n", (inst, dest, src), FormatOptions::default());
   }
 }
 

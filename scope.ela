@@ -62,16 +62,15 @@ choice Value {
   Label(Interned!<String>),
 }
 
-impl Value {
-  fn to_string(self) -> String {
+impl Format for Value {
+  fn format(*const self, builder: *mut StringBuilder, options: FormatOptions) {
     switch is self {
-      Value::Register(reg) => reg.to_string(),
-      Value::Stack(addr) => fmt::qformat("qword [rbp - %]", (addr,)),
-      Value::Param(idx) => argument_registers.data[idx].to_string(),
-      Value::Literal(value) => fmt::to_string(value),
-      Value::Label(name) => name.value(),
+      Value::Register(reg):   { builder.append_then_free(reg.to_string());                              }
+      Value::Stack(addr):     { builder.appendf("qword [rbp - %]", (addr,), FormatOptions::default());  }
+      Value::Param(idx):      { builder.append_then_free(argument_registers.data[idx].to_string());     }
+      Value::Literal(value):  { builder.appendf("%", (value,), FormatOptions::default());               }
+      Value::Label(name):     { builder.append(name.value());                                           }
     }
-    return String::from("::invalid value::");
   }
 }
 
