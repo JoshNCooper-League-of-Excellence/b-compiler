@@ -1,12 +1,6 @@
 extern putchar
 extern exit
 global _start
-_start:
-  call main
-  mov rax, 60
-  xor rdi, rdi
-  syscall
-  ret
 hello_world:
 push rbp
 mov rbp, rsp
@@ -67,12 +61,10 @@ sub rsp, 8 ; aligning stack
 call putchar
 add rsp, 8 ; restoring stack
 ret
-main:
+_start:
 push rbp
 mov rbp, rsp
-sub rsp, 16 ; aligning stack
 call hello_world
-add rsp, 16 ; restoring stack
 mov rdi, 0 ; load arg 0 -> 
 sub rsp, 8 ; aligning stack
 call exit

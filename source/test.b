@@ -1,10 +1,11 @@
 
-
-
-main() {
-  extrn exit; extrn putchar;
+func(a, b) {
   auto x;
-  x = -1;
-  
+  x = a + b;
+}
+
+_start() {
+  extrn exit;
+  func(1, 2);
   exit(0);
 }

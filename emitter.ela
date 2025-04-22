@@ -65,18 +65,10 @@ impl Emitter {
 impl Emitter {
   fn visit_program(*mut self, mut program: Program) {
     self.code.append("global _start\n");
-    self.code.append("_start:\n");
-    self.code.append("  call main\n");
-    self.code.append("  mov rax, 60\n");
-    self.code.append("  xor rdi, rdi\n");
-    self.code.append("  syscall\n");
-    self.code.append("  ret\n");
-
     self.current_scope = new(Scope.{});
     for function in program.functions {
       self.visit_function(function);
     }
-    self.current_scope = null;
   }
 
   fn visit_block(*mut self, mut block: Block) {
@@ -242,5 +234,4 @@ impl Emitter {
     }
     return .{};
   }
-
 }

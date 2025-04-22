@@ -88,7 +88,7 @@ impl Scope {
     if self.parent is Option!<*mut Scope>::Some(scope) {
       return scope.get(name);
     }
-    return Option!<*mut Value>::None;
+    return None();
   }
   fn insert(*mut self, name: Interned!<String>, variable: Value) {
     self.variables.insert(name, variable);
