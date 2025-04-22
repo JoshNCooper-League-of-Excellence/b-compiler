@@ -17,7 +17,7 @@ hello_world() {
   putchar('\n');
 }
 
-_start() {
+main() {
   extrn putchar;
   extrn exit;
   hello_world();

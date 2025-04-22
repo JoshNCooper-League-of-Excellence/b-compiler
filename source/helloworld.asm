@@ -61,7 +61,7 @@ sub rsp, 8 ; aligning stack
 call putchar
 add rsp, 8 ; restoring stack
 ret
-_start:
+main:
 push rbp
 mov rbp, rsp
 call hello_world
@@ -69,5 +69,12 @@ mov rdi, 0 ; load arg 0 ->
 sub rsp, 8 ; aligning stack
 call exit
 add rsp, 8 ; restoring stack
+ret
+
+_start:
+  call main
+  mov rax, 60
+  xor rdi, rdi
+  syscall
 ret
 

@@ -4,8 +4,8 @@ func(a, b) {
   x = a + b;
 }
 
-_start() {
+main() {
   extrn exit;
-  func(1, 2);
+  func(1 + 2, 2 + 3 * 200);
   exit(0);
 }

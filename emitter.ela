@@ -66,9 +66,17 @@ impl Emitter {
   fn visit_program(*mut self, mut program: Program) {
     self.code.append("global _start\n");
     self.current_scope = new(Scope.{});
+
     for function in program.functions {
       self.visit_function(function);
     }
+
+    self.code.append("\n_start:\n");
+    self.code.append("  call main\n");
+    self.code.append("  mov rax, 60\n");
+    self.code.append("  xor rdi, rdi\n");
+    self.code.append("  syscall\n");
+    self.code.append("ret\n");
   }
 
   fn visit_block(*mut self, mut block: Block) {
@@ -95,11 +103,11 @@ impl Emitter {
 
   fn visit_unary(*mut self, operand: *mut Expression, operator: TType) -> Value {
     mut operand_value := self.visit_expression(operand);
-    if operand_value is Value::Literal {
-      value := Value::Register(self.register_take().unwrap());
-      inst::emit_binary("mov", value, operand_value, &mut self.code, &const "loading literal")
-      operand_value = value;
+
+    if operand_value is Value::Literal(operand_integer) {
+      return Value::Literal(-operand_integer);
     }
+    
     inst::emit_unary("neg", operand_value, &mut self.code, &const "negate");
     return operand_value;
   }
@@ -121,10 +129,21 @@ impl Emitter {
 
     mut left_value := self.visit_expression(left);
     // if the LHS is a literal we need to put it into a register
-    if left_value is Value::Literal {
-      value := Value::Register(self.register_take().unwrap());
-      inst::emit_binary("mov", value, left_value, &mut self.code, &const "loading literal")
-      left_value = value;
+    if left_value is Value::Literal(left_integer) {
+      // if both are literals, just fold the constants.
+      if right_value is Value::Literal(right_integer) {
+        switch operator {
+          TType::Add: { return Value::Literal(left_integer + right_integer); }
+          TType::Sub: { return Value::Literal(left_integer - right_integer); }
+          TType::Div: { return Value::Literal(left_integer / right_integer); }
+          TType::Modulo: { return Value::Literal(left_integer % right_integer); }
+          TType::Mul: { return Value::Literal(left_integer * right_integer); }
+        }
+      } else {
+        value := Value::Register(self.register_take().unwrap());
+        inst::emit_binary("mov", value, left_value, &mut self.code, &const "loading literal")
+        left_value = value;
+      }
     }
 
     if operator == TType::Div || operator == TType::Modulo {
