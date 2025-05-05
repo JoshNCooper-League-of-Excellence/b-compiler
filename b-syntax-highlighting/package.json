@@ -1,0 +1,27 @@
+{
+  "name": "b-syntax-highlighting",
+  "displayName": "B Syntax Highlighting",
+  "description": "A simple syntax highlighting extension for Ken Thompson's B language.",
+  "version": "0.0.1",
+  "repository": "https://github.com/JoshNCooper-League-of-Excellence/b-compiler",
+  "license": "MIT",
+   "engines": {
+    "vscode": ">=1.0.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "b",
+      "aliases": ["B", "b"],
+      "extensions": [".b"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "b",
+      "scopeName": "source.b",
+      "path": "./syntaxes/b.tmLanguage.json"
+    }]
+  }
+}

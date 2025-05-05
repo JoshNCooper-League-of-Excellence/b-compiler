@@ -6,6 +6,8 @@ func(a, b) {
 
 main() {
   extrn exit;
-  func(1 + 2, 2 + 3 * 200);
+  auto v;
+  v = 1 + 2, 2 + 3 * 200;
+  func(v, 10);
   exit(0);
 }

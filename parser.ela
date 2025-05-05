@@ -2,6 +2,8 @@ import lexer::*;
 import map::Map;
 import scope::*;
 
+struct Block;
+
 struct Function {
   name: InternedString,
   parameters: List!<InternedString>,

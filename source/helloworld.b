@@ -1,25 +1,20 @@
 
 
-hello_world() {
-  putchar('H');
-  putchar('e');
-  putchar('l');
-  putchar('l');
-  putchar('o');
-  putchar(',');
-  putchar(' ');
-  putchar('W');
-  putchar('o');
-  putchar('r');
-  putchar('l');
-  putchar('d');
-  putchar('!');
-  putchar('\n');
+puts(string) {
+  extern strlen; auto i;
+  i = 0;
+
+  while (i < strlen(string)) {
+    puts(string[i]);
+    i = i + 1;
+  }
 }
 
 main() {
-  extrn putchar;
-  extrn exit;
-  hello_world();
+  extrn putchar; extrn exit;
+
+  auto helloWorld[13] = "Hello World!\n";
+
+
   exit(0);
 }

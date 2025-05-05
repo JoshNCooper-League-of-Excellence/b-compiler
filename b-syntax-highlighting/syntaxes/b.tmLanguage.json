@@ -1,0 +1,85 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "B",
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#chars"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#functions"
+    },
+    {
+      "include": "#array-brackets"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.b",
+          "match": "\\b(if|while|else|break|continue|return|extrn|auto)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.b",
+      "patterns": [
+        {
+          "match": "\\b\\d+\\b",
+          "name": "constant.numeric.integer.b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.b",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.b",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "chars": {
+      "name": "constant.character.b",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.b",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "functions": {
+      "name": "meta.function.b",
+      "begin": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.function.b"
+        }
+      },
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    "array-brackets": {
+      "name": "meta.brackets.square.b",
+      "match": "\\[|\\]"
+    }
+  },
+  "scopeName": "source.b"
+}
